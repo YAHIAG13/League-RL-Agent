@@ -27,18 +27,19 @@ class LeagueAgentEnv(gym.Env):
             {
                 # champions
                 "champion_position": spaces.Box(0, size - 1, shape=(2,), dtype=np.float32),
-                "champion_health" : spaces.Discrete(),
-                "champion_mana" : spaces.Discrete(),
+                "champion_health" : spaces.Discrete(9999),
+                "champion_mana" : spaces.Discrete(9999),
                 "champion_level" : spaces.Discrete(19),
                 # "champions_health": spaces.Box(0, 1, shape=(10,), dtype=np.float32),
                 # "champions_mana": spaces.Box(0, 1, shape=(10,), dtype=np.float32),
                 # "champions_level": spaces.Box(0, 18, shape=(10,), dtype=np.int32),
 
                 # player stats :
-                "gold" : spaces.Discrete(),
-                "time" : spaces.Discrete(),
+                "gold" : spaces.Discrete(9999),
+                "time" : spaces.Discrete(9999),
 
                 "abilities_cooldown": spaces.Box(0, 1, shape=(4,), dtype=np.float32),
+                "abilities_level" : spaces.Box(0, 5, shape=(4,), dtype=np.int32),
                 "spells_cooldown": spaces.Box(0, 1, shape=(2,), dtype=np.float32),
 
                 # jungle
@@ -153,6 +154,7 @@ class LeagueAgentEnv(gym.Env):
             "gold" : self._gold,
             "time" : self._time,
             "abilities_cooldown": self._abilities_cooldown,
+            "abilities_level": self._abilities_level,
             "spells_cooldown": self._spells_cooldown,
             "jungle_monsters_position": self._jungle_monsters_position,
             "jungle_monsters_health": self._jungle_monsters_health,
@@ -232,10 +234,11 @@ class LeagueAgentEnv(gym.Env):
         print("Waiting for game to load ...")
         time.sleep(10)
 
+        data = None
+
         while(True) :
             try :
                 response = self._get_player_data()
-
                 if response.status_code == 200:
                     print("Received a valid response")
                     data = response.json()
@@ -262,7 +265,8 @@ class LeagueAgentEnv(gym.Env):
         super().reset(seed=seed)
 
         ## champion position
-        minimap = self._capture_screen(MINIMAP_AREA)
+        x, y, w, h = MINIMAP_AREA
+        minimap = self._capture_screen(x, y, w, h)
         player = cv.imread("assets\yi_border.jpg")
         x, y = self._locate_area(minimap, player)
         self._champion_position = np.array([x,y], dtype=np.float32)
@@ -284,6 +288,9 @@ class LeagueAgentEnv(gym.Env):
 
         ## abilities cooldown
         self._abilities_cooldown = np.array([0, 0, 0, 0], dtype=np.float32)
+
+        ## abilities level
+        self._abilities_level = np.array([0, 0, 0, 0], dtype=np.int32)
 
         ## spells cooldown
         self._spells_cooldown = np.array([0, 0], dtype=np.float32)
@@ -351,3 +358,10 @@ class LeagueAgentEnv(gym.Env):
 
         pass
 
+from gymnasium.envs.registration import register
+
+register(
+    id="LeagueAgentEnv-v0",
+    entry_point="LeagueAgentEnv",
+    max_episode_steps=300,
+)
