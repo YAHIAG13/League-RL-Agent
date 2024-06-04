@@ -2,6 +2,7 @@ import math
 import time
 import cv2 as cv
 import numpy as np
+import pydirectinput
 import requests
 import urllib3
 urllib3.disable_warnings()
@@ -50,22 +51,23 @@ def _locate_area(screenshot, template):
 # cv.waitKey(0)
 # cv.destroyAllWindows()
 
-player_pos = np.array([1, 4])
+def _move_champion(direction):
+        
+        if( direction != 0 ):
+            steps = 8
+            angle_step = 2 * math.pi / steps
+            center_x = 870
+            center_y = 510
+            radius = 150
 
-# Example jungle monsters' positions (10 monsters with x, y coordinates)
-jungle_monsters_pos = np.array([
-    [2, 5],
-    [2, 8],
-    [4, 4],
-    [4, 5],
-    [6, 6],
-    [7, 3],
-    [5, 7],
-    [8, 1],
-    [9, 2],
-    [3, 5]
-])
+            step = steps - direction
 
-distances = np.linalg.norm(jungle_monsters_pos - player_pos, axis=1)
+            angle = step * angle_step
+            x = center_x + radius * math.cos(angle)
+            y = center_y + radius * math.sin(angle)
+            pydirectinput.click(x, y, button="secondary")
 
-print(distances)
+for i in range(9) :
+    print(i)
+    _move_champion(i)
+    time.sleep(1)

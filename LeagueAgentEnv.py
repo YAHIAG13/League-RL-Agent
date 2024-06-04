@@ -5,9 +5,12 @@ import numpy as np
 import requests
 import urllib3
 urllib3.disable_warnings()
+import pydirectinput
 import pyautogui
 import pygetwindow as gw
 import pytesseract
+
+pydirectinput.FAILSAFE = False
 
 import gymnasium as gym
 from gymnasium import spaces
@@ -84,23 +87,6 @@ class LeagueAgentEnv(gym.Env):
                 2   # p
             ]
         )
-
-        """
-        The following dictionary maps abstract actions from `self.action_space` to
-        the direction we will walk in if that action is taken.
-        I.e. -1 corresponds to "south", 1 to "north", while 0 coresspond to "none" etc.
-        """
-        self._action_to_direction = {
-            0: np.array([0, 0]),    # no movement
-            1: np.array([1, 0]),    # north
-            2: np.array([-1, 0]),   # south
-            3: np.array([0, 1]),    # east
-            4: np.array([0, -1]),   # west
-            5: np.array([1, -1]),   # north-west
-            6: np.array([1, 1]),    # north-east
-            7: np.array([-1, -1]),  # south-west
-            8: np.array([-1, 1]),   # south-east
-        }
     
     def _find_window(self, title):
         windows = gw.getWindowsWithTitle(title)
@@ -170,6 +156,7 @@ class LeagueAgentEnv(gym.Env):
         # Reset the game
         print("Reseting game ...")
         ## wait till game exits
+        time.sleep(2)
         ## switch to client
         window = self._find_window("League of Legends")
         self._activate_and_get_size(window)
@@ -178,49 +165,49 @@ class LeagueAgentEnv(gym.Env):
         screen_capture = self._capture_screen(0, 0, 1920, 1080)
         play_template = cv.imread("assets\play_btn.jpg")
         x, y = self._locate_area(screen_capture, play_template)
-        pyautogui.click(x, y, button="PRIMARY")
+        pydirectinput.click(x, y, button="primary")
         time.sleep(2)
 
         ## training
         screen_capture = self._capture_screen(0, 0, 1920, 1080)
         play_template = cv.imread("assets\\training.jpg")
         x, y = self._locate_area(screen_capture, play_template)
-        pyautogui.click(x, y, button="PRIMARY")
+        pydirectinput.click(x, y, button="primary")
         time.sleep(2)
 
         ## practice tool
         screen_capture = self._capture_screen(0, 0, 1920, 1080)
         play_template = cv.imread("assets\practice_tool.jpg")
         x, y = self._locate_area(screen_capture, play_template)
-        pyautogui.click(x, y, button="PRIMARY")
+        pydirectinput.click(x, y, button="primary")
         time.sleep(2)
 
         ## confirm
         screen_capture = self._capture_screen(0, 0, 1920, 1080)
         play_template = cv.imread("assets\confirm.jpg")
         x, y = self._locate_area(screen_capture, play_template)
-        pyautogui.click(x, y, button="PRIMARY")
+        pydirectinput.click(x, y, button="primary")
         time.sleep(2)
 
         ## start game
         screen_capture = self._capture_screen(0, 0, 1920, 1080)
         play_template = cv.imread("assets\start.jpg")
         x, y = self._locate_area(screen_capture, play_template)
-        pyautogui.click(x, y, button="PRIMARY")
+        pydirectinput.click(x, y, button="primary")
         time.sleep(4)
 
         ## hover master yi
         screen_capture = self._capture_screen(0, 0, 1920, 1080)
         play_template = cv.imread("assets\select_yi.jpg")
         x, y = self._locate_area(screen_capture, play_template)
-        pyautogui.click(x, y, button="PRIMARY")
+        pydirectinput.click(x, y, button="primary")
         time.sleep(2)
 
         ## lock in
         screen_capture = self._capture_screen(0, 0, 1920, 1080)
         play_template = cv.imread("assets\lock_in.jpg")
         x, y = self._locate_area(screen_capture, play_template)
-        pyautogui.click(x, y, button="PRIMARY")
+        pydirectinput.click(x, y, button="primary")
 
         ## wait till game start
 
@@ -333,24 +320,123 @@ class LeagueAgentEnv(gym.Env):
         ## nexus position
         ## nexus health
 
+
         observation = self._get_obs()
         info = self._get_info()
+
+        self.distanceToRed = 380.0
 
         return observation, info
+    
+    def _move_champion(self, direction):
+        if( direction != 0 ):
+            steps = 8
+            angle_step = 2 * math.pi / steps
+            center_x = 870
+            center_y = 510
+            radius = 150
+
+            step = steps - direction
+
+            angle = step * angle_step
+            x = center_x + radius * math.cos(angle)
+            y = center_y + radius * math.sin(angle)
+            pyautogui.click(x, y, button="SECONDARY")
 
     def step(self, action):
+
+        interval = 1.0 / 4 # Calculate the interval in seconds
+        start_time = time.time()  # Get the current time at the start of the loop
         
-        # Map the action (element of {0,1,2,3}) to the direction we walk in
-        direction = self._action_to_direction[action]
-        # We use `np.clip` to make sure we don't leave the grid
-        self._agent_location = np.clip(
-            self._agent_location + direction, 0, self.size - 1
-        )
-        # An episode is done iff the agent has reached the target
-        terminated = np.array_equal(self._agent_location, self._target_location)
-        reward = 1 if terminated else 0  # Binary sparse rewards
+
+        reward = 0
+        direction, q, w, e, r, d, f, b, p = action
+        print("Action: ", action)
+        data = self._get_player_data().json()
+
+        # Move the champion
+        self._move_champion(direction)
+
+        # Update champion position
+        xm, ym, wm, hm = MINIMAP_AREA
+        minimap = self._capture_screen(xm, ym, wm, hm)
+        player = cv.imread("assets\yi_border.jpg")
+        xc, yc = self._locate_area(minimap, player)
+        self._champion_position = np.array([xc,yc], dtype=np.float32)
+
+        # abilities
+        match q:
+            case 1:
+                print("press q")
+                pydirectinput.press("q")
+            case 2:
+                print("upgrade q")
+                pastLevel = data["activePlayer"]["abilities"]["Q"]["abilityLevel"]
+                with pydirectinput.hold("ctrlleft") : pydirectinput.press("q")
+                if data["activePlayer"]["abilities"]["Q"]["abilityLevel"] > pastLevel :
+                    reward += 10
+
+        match w:
+            case 1:
+                pydirectinput.press("w")
+            case 2:
+                pastLevel = data["activePlayer"]["abilities"]["W"]["abilityLevel"]
+                with pydirectinput.hold("ctrlleft") : pydirectinput.press("w")
+                if data["activePlayer"]["abilities"]["W"]["abilityLevel"] > pastLevel :
+                    reward += 10
+
+        match e:
+            case 1:
+                pydirectinput.press("e")
+            case 2:
+                pastLevel = data["activePlayer"]["abilities"]["E"]["abilityLevel"]
+                with pydirectinput.hold("ctrlleft") : pydirectinput.press("e")
+                if data["activePlayer"]["abilities"]["E"]["abilityLevel"] > pastLevel :
+                    reward += 10
+        
+        match r:
+            case 1:
+                pydirectinput.press("r")
+            case 2:
+                pastLevel = data["activePlayer"]["abilities"]["R"]["abilityLevel"]
+                with pydirectinput.hold("ctrlleft") : pydirectinput.press("r")
+                if data["activePlayer"]["abilities"]["R"]["abilityLevel"] > pastLevel :
+                    reward += 10
+
+
+        # abilities = [q, w, e, r]
+        # for i, ability in enumerate(abilities):
+        #     if ability == 1:  # Activate ability
+        #         pydirectinput.press()
+        #         self._abilities_cooldown[i] = 1.0  # Assume some cooldown value
+        #     elif ability == 2:  # Upgrade ability
+        #         self._abilities_level[i] = min(self._abilities_level[i] + 1, 5)  # Max level 5
+
+        # Distance to jungle monsters : Red
+        distances = np.linalg.norm(self._jungle_monsters_position - self._champion_position, axis=1)
+
+        if distances[1] < self.distanceToRed :
+            reward += 10
+        else :
+            reward -= 10
+
+        self.distanceToRed = distances[1]
+
+        # An episode is done if the game is done
+
+        endGameStatus = str("")
+        terminated = False
+        for event in data["events"]["Events"] :
+            if event["EventName"] == "GameEnd" :
+                terminated = True
+                endGameStatus = event["Result"]
+        reward += 1000 if (endGameStatus == "Win") else -1000  # reward for winning / losing the game
         observation = self._get_obs()
         info = self._get_info()
+
+        elapsed_time = time.time() - start_time # Calculate the elapsed time
+        sleep_time = max(0, interval - elapsed_time)
+        time.sleep(sleep_time)  # Sleep for the remaining time to maintain the loop frequ
 
         return observation, reward, terminated, False, info
 
@@ -358,10 +444,3 @@ class LeagueAgentEnv(gym.Env):
 
         pass
 
-from gymnasium.envs.registration import register
-
-register(
-    id="LeagueAgentEnv-v0",
-    entry_point="LeagueAgentEnv",
-    max_episode_steps=300,
-)

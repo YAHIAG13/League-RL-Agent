@@ -9,6 +9,7 @@ urllib3.disable_warnings()
 from matplotlib import pyplot as plt
 
 import pyautogui
+import pydirectinput
 import pygetwindow as gw
 from pywinauto.application import Application
 
@@ -30,8 +31,6 @@ def find_player_position_in_map(screenshot):
 
     result = cv.matchTemplate(gray, template, cv.TM_SQDIFF)
     min_val, max_val, min_loc, max_loc = cv.minMaxLoc(result)
-
-    
 
     # Draw a rectangle around the matched area
     top_left = min_loc
@@ -98,6 +97,6 @@ while(gw.getActiveWindowTitle() == "League of Legends (TM) Client"):
     angle = step * angle_step
     x = center_x + radius * math.cos(angle)
     y = center_y + radius * math.sin(angle)
-    pyautogui.click(x, y, button="SECONDARY")
+    pydirectinput.click(x, y, button="secondary")
 
     time.sleep(1)
