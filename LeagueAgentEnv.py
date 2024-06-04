@@ -8,9 +8,9 @@ urllib3.disable_warnings()
 import pydirectinput
 import pyautogui
 import pygetwindow as gw
-import pytesseract
 
 pydirectinput.FAILSAFE = False
+pyautogui.FAILSAFE = False
 
 import gymnasium as gym
 from gymnasium import spaces
@@ -24,10 +24,17 @@ class LeagueAgentEnv(gym.Env):
         
         self.size = size  # The size of the square grid
 
+        self.epoch_number = 0
+
         # Observations are dictionaries with the agent's and the target's location.
         # Each location is encoded as an element of {0, ..., `size`}^2, i.e. MultiDiscrete([size, size]).
         self.observation_space = spaces.Dict(
             {
+                # game data
+                "time" : spaces.Discrete(9999),
+                "side" : spaces.Discrete(2), # 0 -> bottom side (ORDER), 1 -> top side (CHEOS)
+
+
                 # champions
                 "champion_position": spaces.Box(0, size - 1, shape=(2,), dtype=np.float32),
                 "champion_health" : spaces.Discrete(9999),
@@ -39,7 +46,6 @@ class LeagueAgentEnv(gym.Env):
 
                 # player stats :
                 "gold" : spaces.Discrete(9999),
-                "time" : spaces.Discrete(9999),
 
                 "abilities_cooldown": spaces.Box(0, 1, shape=(4,), dtype=np.float32),
                 "abilities_level" : spaces.Box(0, 5, shape=(4,), dtype=np.int32),
@@ -59,12 +65,6 @@ class LeagueAgentEnv(gym.Env):
 
                 # "nexus_position": spaces.Box(0, size - 1, shape=(2,2,2), dtype=np.float32),
                 # "nexus_health": spaces.Box(0, 1, shape=(2,2,), dtype=np.float32),
-
-                
-
-                
-
-
             }
         )
 
@@ -84,7 +84,6 @@ class LeagueAgentEnv(gym.Env):
                 2,  # d
                 2,  # f
                 2,  # b
-                2   # p
             ]
         )
     
@@ -139,6 +138,7 @@ class LeagueAgentEnv(gym.Env):
             "champion_level" : self._champion_level,
             "gold" : self._gold,
             "time" : self._time,
+            "side" : self._side,
             "abilities_cooldown": self._abilities_cooldown,
             "abilities_level": self._abilities_level,
             "spells_cooldown": self._spells_cooldown,
@@ -149,14 +149,55 @@ class LeagueAgentEnv(gym.Env):
 
     def _get_info(self):
         return {
+            "champion_max_health": self._champion_max_health,
+            "champion_max_mana" : self._champion_max_mana,
             "jungle_monsters_distances": np.linalg.norm(self._jungle_monsters_position - self._champion_position, axis=1)
         }
 
     def reset(self, seed=None, options=None):
-        # Reset the game
-        print("Reseting game ...")
+
+        self.epoch_number += 1
+
+        if self.epoch_number > 1 :
+            # Reset the game
+            print("Reseting game ...")
+
+            while(True) :
+                try :
+                    response = self._get_player_data()
+                    if response.status_code == 200:
+                        print("Game still running")
+
+                        isEndGame = False
+                        for event in response.json()["events"]["Events"] :
+                            if event["EventName"] == "GameEnd" : isEndGame = True
+
+                        if not isEndGame and self._time > 900:
+                            pydirectinput.press("enter")
+                            pydirectinput.write("/ff")
+                            pydirectinput.press("enter")
+                        
+                except requests.RequestException as e:
+                    print("Game ended")
+                    break
+
+                print(f"Retrying in {2} seconds...")
+                time.sleep(4)
+            
+            time.sleep(10)
+
+            # press continue
+            screen_capture = self._capture_screen(0, 0, 1920, 1080)
+            play_template = cv.imread("assets\play_again.jpg")
+            x, y = self._locate_area(screen_capture, play_template)
+            pydirectinput.click(x, y, button="primary")
+            time.sleep(4)
+
+
+
+        print("Starting the game ...")
         ## wait till game exits
-        time.sleep(2)
+        time.sleep(4)
         ## switch to client
         window = self._find_window("League of Legends")
         self._activate_and_get_size(window)
@@ -166,28 +207,41 @@ class LeagueAgentEnv(gym.Env):
         play_template = cv.imread("assets\play_btn.jpg")
         x, y = self._locate_area(screen_capture, play_template)
         pydirectinput.click(x, y, button="primary")
-        time.sleep(2)
+        time.sleep(4)
 
-        ## training
+        ## create custom
         screen_capture = self._capture_screen(0, 0, 1920, 1080)
-        play_template = cv.imread("assets\\training.jpg")
+        play_template = cv.imread("assets\\create_custom.jpg")
         x, y = self._locate_area(screen_capture, play_template)
         pydirectinput.click(x, y, button="primary")
-        time.sleep(2)
-
-        ## practice tool
-        screen_capture = self._capture_screen(0, 0, 1920, 1080)
-        play_template = cv.imread("assets\practice_tool.jpg")
-        x, y = self._locate_area(screen_capture, play_template)
-        pydirectinput.click(x, y, button="primary")
-        time.sleep(2)
+        time.sleep(4)
 
         ## confirm
         screen_capture = self._capture_screen(0, 0, 1920, 1080)
         play_template = cv.imread("assets\confirm.jpg")
         x, y = self._locate_area(screen_capture, play_template)
         pydirectinput.click(x, y, button="primary")
-        time.sleep(2)
+        time.sleep(4)
+
+        ## add first enemy bot
+        screen_capture = self._capture_screen(0, 0, 1920, 1080)
+        play_template = cv.imread("assets\\add_first_bot_enemy.jpg")
+        x, y = self._locate_area(screen_capture, play_template)
+        pydirectinput.click(x+100, y, button="primary")
+        time.sleep(4)
+
+        ## change difficulty to intermidiat (helps ending game faster)
+        screen_capture = self._capture_screen(0, 0, 1920, 1080)
+        play_template = cv.imread("assets\\difficulty.jpg")
+        x, y = self._locate_area(screen_capture, play_template)
+        pydirectinput.click(x, y, button="primary")
+        time.sleep(4)
+
+        screen_capture = self._capture_screen(0, 0, 1920, 1080)
+        play_template = cv.imread("assets\\intermid_diff.jpg")
+        x, y = self._locate_area(screen_capture, play_template)
+        pydirectinput.click(x, y, button="primary")
+        time.sleep(4)
 
         ## start game
         screen_capture = self._capture_screen(0, 0, 1920, 1080)
@@ -201,7 +255,7 @@ class LeagueAgentEnv(gym.Env):
         play_template = cv.imread("assets\select_yi.jpg")
         x, y = self._locate_area(screen_capture, play_template)
         pydirectinput.click(x, y, button="primary")
-        time.sleep(2)
+        time.sleep(4)
 
         ## lock in
         screen_capture = self._capture_screen(0, 0, 1920, 1080)
@@ -216,7 +270,7 @@ class LeagueAgentEnv(gym.Env):
         while (gw.getActiveWindowTitle() != "League of Legends (TM) Client") :
             window = self._find_window("League of Legends (TM) Client")
             print("Waiting for game to start ...")
-            time.sleep(2)
+            time.sleep(4)
 
         print("Waiting for game to load ...")
         time.sleep(10)
@@ -234,7 +288,7 @@ class LeagueAgentEnv(gym.Env):
                 print(f"Request failed: {e}")
 
             print(f"Retrying in {2} seconds...")
-            time.sleep(2)
+            time.sleep(4)
 
         time.sleep(1)
 
@@ -247,6 +301,9 @@ class LeagueAgentEnv(gym.Env):
         currentLevel = data['activePlayer']['level']
         currentGold = data['activePlayer']['currentGold']
         currentTime = data['gameData']['gameTime']
+
+        self._champion_max_health = data['activePlayer']['championStats']['maxHealth']
+        self._champion_max_mana = data['activePlayer']['championStats']['resourceMax']
 
         ## We need the following line to seed self.np_random
         super().reset(seed=seed)
@@ -273,6 +330,13 @@ class LeagueAgentEnv(gym.Env):
         ## time
         self._time = currentTime
 
+        ## side
+        currPlayerIndex = 0
+        for playerInd in range(len(data['allPlayers'])) :
+            if data['allPlayers'][playerInd]["riotId"] == data['activePlayer']['riotId']:
+                currPlayerIndex = playerInd
+        self._side = 0 if data['allPlayers'][currPlayerIndex]['team'] == "ORDER" else 1
+
         ## abilities cooldown
         self._abilities_cooldown = np.array([0, 0, 0, 0], dtype=np.float32)
 
@@ -283,18 +347,33 @@ class LeagueAgentEnv(gym.Env):
         self._spells_cooldown = np.array([0, 0], dtype=np.float32)
 
         ## jungle monsters position
-        self._jungle_monsters_position = np.array([
-            [217, 316], # krugs
-            [198, 277], # red
-            [182, 245], # chickens
-            [96, 214],  # wolves
-            [96, 177],  # blue
-            [55, 166],  # gromp
-            [111, 132], # scuttle top
-            [125, 112], # grubs, herald, baron
-            [275, 244], # scuttle bot
-            [257, 268], # dragon
-        ], dtype=np.float32)
+        if self._side == 0:
+            self._jungle_monsters_position = np.array([
+                [217, 316], # krugs
+                [198, 277], # red
+                [182, 245], # chickens
+                [96, 214],  # wolves
+                [96, 177],  # blue
+                [55, 166],  # gromp
+                [111, 132], # scuttle top
+                [125, 112], # grubs, herald, baron
+                [275, 244], # scuttle bot
+                [257, 268], # dragon
+            ], dtype=np.float32)
+        else :
+            self._jungle_monsters_position = np.array([
+                [168, 63], # krugs
+                [184, 99], # red
+                [202, 135], # chickens
+                [287, 167],  # wolves
+                [288, 206],  # blue
+                [228, 217],  # gromp
+                [111, 132], # scuttle top
+                [125, 112], # grubs, herald, baron
+                [275, 244], # scuttle bot
+                [257, 268], # dragon
+            ], dtype=np.float32)
+
 
         ## jungle monsters health
         self._jungle_monsters_health = np.zeros((10,), dtype=np.float32)
@@ -329,7 +408,11 @@ class LeagueAgentEnv(gym.Env):
         return observation, info
     
     def _move_champion(self, direction):
+
+        reward = 0
+
         if( direction != 0 ):
+            reward = -1
             steps = 8
             angle_step = 2 * math.pi / steps
             center_x = 870
@@ -343,6 +426,8 @@ class LeagueAgentEnv(gym.Env):
             y = center_y + radius * math.sin(angle)
             pyautogui.click(x, y, button="SECONDARY")
 
+        return reward
+
     def step(self, action):
 
         interval = 1.0 / 4 # Calculate the interval in seconds
@@ -350,58 +435,107 @@ class LeagueAgentEnv(gym.Env):
         
 
         reward = 0
-        direction, q, w, e, r, d, f, b, p = action
-        print("Action: ", action)
+        direction, q, w, e, r, d, f, b = action
         data = self._get_player_data().json()
 
         # Move the champion
-        self._move_champion(direction)
+        reward += self._move_champion(direction)
 
         # Update champion position
         xm, ym, wm, hm = MINIMAP_AREA
         minimap = self._capture_screen(xm, ym, wm, hm)
-        player = cv.imread("assets\yi_border.jpg")
+        player = cv.imread("assets\yi_border_3.jpg")
         xc, yc = self._locate_area(minimap, player)
         self._champion_position = np.array([xc,yc], dtype=np.float32)
 
-        # abilities
+        # Update champion health and mana level
+        self._champion_health = data['activePlayer']['championStats']['currentHealth']
+        self._champion_mana = data['activePlayer']['championStats']['resourceValue']
+        self._champion_level = data['activePlayer']['level']
+
+        # Other update
+        self._time = data['gameData']['gameTime']
+        self._gold = data['activePlayer']['currentGold']
+        # Death
+        if self._champion_health == 0 : reward -= 100
+
+        # Abilities
         match q:
             case 1:
-                print("press q")
                 pydirectinput.press("q")
+                reward -= 1
             case 2:
-                print("upgrade q")
                 pastLevel = data["activePlayer"]["abilities"]["Q"]["abilityLevel"]
                 with pydirectinput.hold("ctrlleft") : pydirectinput.press("q")
                 if data["activePlayer"]["abilities"]["Q"]["abilityLevel"] > pastLevel :
                     reward += 10
+                else :
+                    reward -= 1
 
         match w:
             case 1:
                 pydirectinput.press("w")
+                reward -= 1
             case 2:
                 pastLevel = data["activePlayer"]["abilities"]["W"]["abilityLevel"]
                 with pydirectinput.hold("ctrlleft") : pydirectinput.press("w")
                 if data["activePlayer"]["abilities"]["W"]["abilityLevel"] > pastLevel :
                     reward += 10
+                else :
+                    reward -= 1
 
         match e:
             case 1:
                 pydirectinput.press("e")
+                reward -= 1
             case 2:
                 pastLevel = data["activePlayer"]["abilities"]["E"]["abilityLevel"]
                 with pydirectinput.hold("ctrlleft") : pydirectinput.press("e")
                 if data["activePlayer"]["abilities"]["E"]["abilityLevel"] > pastLevel :
                     reward += 10
+                else :
+                    reward -= 1
         
         match r:
             case 1:
                 pydirectinput.press("r")
+                reward -= 1
             case 2:
                 pastLevel = data["activePlayer"]["abilities"]["R"]["abilityLevel"]
                 with pydirectinput.hold("ctrlleft") : pydirectinput.press("r")
                 if data["activePlayer"]["abilities"]["R"]["abilityLevel"] > pastLevel :
                     reward += 10
+                else :
+                    reward -= 1
+
+        # Spells
+        ## flash, ghost ...
+        if(d == 1):
+                reward -= 50
+                pydirectinput.press("d")
+
+        ## smite
+        if(f == 1):
+                reward -= 1
+                pydirectinput.press("f")
+
+        # Basing
+        # if(b == 1):
+        #         pydirectinput.press("b")
+
+        #         # check if player is in base
+        #         x1, y1, x2, y2 =  2, 347, 31, 380 # base area from topleft to bottomright
+        #         x, y = self._champion_position
+                
+        #         if self._champion_health < self._champion_max_health * 0.3 or self._champion_mana < self._champion_max_mana * 0.1:
+        #             reward += 1
+        #         else:
+        #             reward -= 1
+
+        #         if (x > x1 and x < x2 and y < y1 and y > y2) :
+        #             reward += 10
+        #         else :
+        #             reward -= 1
 
 
         # abilities = [q, w, e, r]
@@ -416,27 +550,28 @@ class LeagueAgentEnv(gym.Env):
         distances = np.linalg.norm(self._jungle_monsters_position - self._champion_position, axis=1)
 
         if distances[1] < self.distanceToRed :
-            reward += 10
+            reward += 1
         else :
-            reward -= 10
+            reward -= 1
 
         self.distanceToRed = distances[1]
 
         # An episode is done if the game is done
-
-        endGameStatus = str("")
         terminated = False
         for event in data["events"]["Events"] :
             if event["EventName"] == "GameEnd" :
                 terminated = True
-                endGameStatus = event["Result"]
-        reward += 1000 if (endGameStatus == "Win") else -1000  # reward for winning / losing the game
+                reward += 1000 if (event["Result"] == "Win") else -1000  # reward for winning / losing the game
+        
+        # Update observation and info
         observation = self._get_obs()
         info = self._get_info()
 
         elapsed_time = time.time() - start_time # Calculate the elapsed time
         sleep_time = max(0, interval - elapsed_time)
         time.sleep(sleep_time)  # Sleep for the remaining time to maintain the loop frequ
+
+        print("Action: ", action, ", Reward: ", reward, "Pos: ", self._champion_position, "Health: ", self._champion_health)
 
         return observation, reward, terminated, False, info
 

@@ -6,8 +6,8 @@ from stable_baselines3.common.env_util import make_vec_env
 
 env = LeagueAgentEnv()
 
-model = PPO("MultiInputPolicy", env, n_epochs=2, verbose=2)
-model.learn(total_timesteps=25000)
+model = PPO("MultiInputPolicy", env, verbose=2)
+model.learn(total_timesteps=160)
 model.save("LeagueAgentEnv")
 
 # states = env.observation_space.shape

@@ -51,23 +51,29 @@ def _locate_area(screenshot, template):
 # cv.waitKey(0)
 # cv.destroyAllWindows()
 
-def _move_champion(direction):
+# def _move_champion(direction):
         
-        if( direction != 0 ):
-            steps = 8
-            angle_step = 2 * math.pi / steps
-            center_x = 870
-            center_y = 510
-            radius = 150
+#         if( direction != 0 ):
+#             steps = 8
+#             angle_step = 2 * math.pi / steps
+#             center_x = 870
+#             center_y = 510
+#             radius = 150
 
-            step = steps - direction
+#             step = steps - direction
 
-            angle = step * angle_step
-            x = center_x + radius * math.cos(angle)
-            y = center_y + radius * math.sin(angle)
-            pydirectinput.click(x, y, button="secondary")
+#             angle = step * angle_step
+#             x = center_x + radius * math.cos(angle)
+#             y = center_y + radius * math.sin(angle)
+#             pydirectinput.click(x, y, button="secondary")
 
-for i in range(9) :
-    print(i)
-    _move_champion(i)
-    time.sleep(1)
+# for i in range(9) :
+#     print(i)
+#     _move_champion(i)
+#     time.sleep(1)
+
+arr = np.array([5, 2])
+
+x, y = arr
+
+print(x, y, arr)
