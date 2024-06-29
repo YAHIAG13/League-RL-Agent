@@ -16,13 +16,13 @@ video games provides one of the most challenging environments for reinforcement 
 ## Agent Environment:
 League of legends uses "fog of war" that acts as the field of view of the agent. this fog of war prevents him for knowing something like enemy position, health or other things, making the environment state is not fully observable unlike chess for example. so instead, the agent receives observations that provide some information about the state of the environment like enemy position, health... when there is one inside the field of view, also some other informations about the agent itself such as gold, health, etc. The agent decision-making involves three key components:
 
--   **States**: Different observations of the environment, partially known to the agent.
+-   **States**: Different observations of the environment, partially known to the agent.\
 *example:* elapsed time, structures health and positions, creeps health and positions, agent's and allies (enemy when observable) health, mana, gold, position, etc.
 
--   **Actions**: Choices available to the agent that can affect the state.
+-   **Actions**: Choices available to the agent that can affect the state.\
 *example:* move in all directions, activate or upgrade ability, base, shop for items, etc.
 
--   **Rewards**: Feedback on the actions taken, guiding the agent towards its goal. 
+-   **Rewards**: Feedback on the actions taken, guiding the agent towards its goal. \
 *example:* receive a positive reward when low in health and then base to get health back, a negative reward when agent dies (health = 0), etc.
 
 ## Technicalities:
