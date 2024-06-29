@@ -8,9 +8,9 @@ motivated by OpenAI work on OpenFive, the Dota 2 Team of RL Agents that where ab
 video games provides one of the most challenging environments for reinforcement learning agents, a real time environment where each split of a second matter and with so many variables to observe and countless actions that could be executed. it would be fascinating to see how these agents could adapt to the chalenges, and what long term strategies that they could come up with that for us humans seems illogical.
 
 ## Tools:
-**Gymnasium [\[Link\]](https://gymnasium.farama.org/index.html):** an interface that helps representing RL problems.
-**Stable-Baselines3:** a set of reliable implementations of reinforcement learning algorithms in PyTorch
-**pyautogui, pydirectinput, pygetwindow:** keyboard and mouse input from a python script
+**Gymnasium [\[Link\]](https://gymnasium.farama.org/index.html):** an interface that helps representing RL problems.\
+**Stable-Baselines3:** a set of reliable implementations of reinforcement learning algorithms in PyTorch.\
+**pyautogui, pydirectinput, pygetwindow:** keyboard and mouse input from a python script.\
 **League Live Client Data API [[Link]](https://developer.riotgames.com/docs/lol#game-client-api_live-client-data-api):** provides a method for gathering data during an active league of legends game. It includes general information about the game as well player data.
 
 ## Agent Environment:
