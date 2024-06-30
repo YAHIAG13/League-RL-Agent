@@ -2,7 +2,7 @@
 using the moba game League of Legends as an environment 
 
 ## Motivation:
-motivated by OpenAI work on OpenFive, the Dota 2 Team of RL Agents that where able to beat the International champions. we are trying to build an agent that learns to play the famous MOBA game, League of Legends.
+motivated by OpenAI work on OpenFive, the Dota 2 Team of RL Agents that where able to beat the International champions. we are trying to build an agent that learns to play the famous MOBA game, League of Legends.\
 [Read](https://arxiv.org/abs/1912.06680) OpenAi Papers about OpenFive AI System.
 
 ## Why a video game:
@@ -27,7 +27,7 @@ League of legends uses "fog of war" that acts as the field of view of the agent.
 *example:* receive a positive reward when low in health and then base to get health back, a negative reward when agent dies (health = 0), etc.
 
 ## Technicalities:
-**RL Algorithm:** Proximal Policy Optimization (PPO). [Read](https://arxiv.org/abs/1707.06347) Original OpenAI Papers.
-**Poicy:** MultiInputPolicy. works well with Gym Dictionary observation space. [Read More](https://stable-baselines3.readthedocs.io/en/master/guide/custom_policy.html#multiple-inputs-and-dictionary-observations).
+**RL Algorithm:** Proximal Policy Optimization (PPO). [Read](https://arxiv.org/abs/1707.06347) Original OpenAI Papers.\
+**Poicy:** MultiInputPolicy. works well with Gym Dictionary observation space. [Read More](https://stable-baselines3.readthedocs.io/en/master/guide/custom_policy.html#multiple-inputs-and-dictionary-observations).\
 
 **//TODO in depth explanation of the chosen observations , actions, and policies:**
