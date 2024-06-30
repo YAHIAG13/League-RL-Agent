@@ -1,4 +1,5 @@
-# Deep RL Agent that learns to plays League of Legends
+# Reinforcement Learning Agent for Video Game Strategy Optimization
+using the moba game League of Legends as an environment 
 
 ## Motivation:
 motivated by OpenAI work on OpenFive, the Dota 2 Team of RL Agents that where able to beat the International champions. we are trying to build an agent that learns to play the famous MOBA game, League of Legends.
