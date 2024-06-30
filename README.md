@@ -28,6 +28,6 @@ League of legends uses "fog of war" that acts as the field of view of the agent.
 
 ## Technicalities:
 **RL Algorithm:** Proximal Policy Optimization (PPO). [Read](https://arxiv.org/abs/1707.06347) Original OpenAI Papers.\
-**Poicy:** MultiInputPolicy. works well with Gym Dictionary observation space. [Read More](https://stable-baselines3.readthedocs.io/en/master/guide/custom_policy.html#multiple-inputs-and-dictionary-observations).\
+**Policy:** MultiInputPolicy. works well with Gym Dictionary observation space. [Read More](https://stable-baselines3.readthedocs.io/en/master/guide/custom_policy.html#multiple-inputs-and-dictionary-observations).
 
 **//TODO in depth explanation of the chosen observations , actions, and policies:**
